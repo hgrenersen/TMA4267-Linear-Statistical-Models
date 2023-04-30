@@ -28,21 +28,17 @@ The factors we want to investigate are somewhat restricted by the options in the
 
 We think there could be interactions between some of the factors. For instance, the characters mainly differ in weight, and this contributes to differences in top speed, acceleration and gravity, to name a few. The remaining factors all add minor changes to these same values, and we expect that a heavier character would benefit more from increased acceleration from cars, wheels and glider, than a smaller character would have. In theory, this should be present in all the interactions. However, since there are quite small changes, it could be somewhat masked by the random noise of the driver’s performance at a given test. Based on the statistics given by the game, we except the largest interaction to be between character and car-body. Also, it is worth noting that the test driver could favor certain attributes, and that the results could be influenced by that. 
 
-For characters, we chose the layers as a heavy and a light character, namely Wario and baby Mario. Wario’s high weight grants him high speed, but low acceleration while baby Mario is agile, but not that quick at top speed. To choose the other levels we tried to make two polar opposites when it comes to cars in Mario Kart. One favours weight and speed, while the other focuses on acceleration, traction, handling and mini-turbo. Combining this with the matching characters we get the stats shown in the image. Thus, Badwagon, Metal and Super glider all focus on weight and speed while Biddybuggy, Roller and Cloud glider all are lighter and aid with acceleration and handling. We choose these levels to create as large differences as possible, so our response would be spread out. This is beneficial to reduce the impact of the random noise.  The different levels for the factors are then just which part we use, for instance Badwagon or Biddybuggy. To control that our factors are at the correct levels, we just pick the correct options in game.
+For characters, we chose the layers as a heavy and a light character, namely Wario and Baby Mario. Wario’s high weight grants him high speed, but low acceleration while baby Mario is agile, but not that quick at top speed. To choose the other levels we tried to make two polar opposites when it comes to cars in Mario Kart. One favours weight and speed, while the other focuses on acceleration, traction, handling and mini-turbo. Combining this with the matching characters we get the stats shown in the image. Thus, Badwagon, Metal and Super glider all focus on weight and speed while Biddybuggy, Roller and Cloud glider all are lighter and aid with acceleration and handling. We choose these levels to create as large differences as possible, so our response would be spread out. This is beneficial to reduce the impact of the random noise.  The different levels for the factors are then just which part we use, for instance Badwagon or Biddybuggy. To control that our factors are at the correct levels, we just pick the correct options in game.
 
 Below we have shown two of the builds, using the site https://mario-kart-optimizer.netlify.app/:
 
-A build with Baby Mario,
+A build with Baby Mario, which optimizes acceleration and has high mini-turbo:
 
 ![Mario](Mario.png)
 
-which optimizes acceleration and has high mini-turbo.
-
-And a build with Wario,
+And a build with Wario, which optimizes speed and has high weight, but has low acceleration and mini-turbo.
 
 ![Wario](Wario.png)
-
-which optimizes speed and has high weight, but has low acceleration and mini-turbo.
 
 ## Response Variable 
 
@@ -54,7 +50,7 @@ The response should be measured in seconds, or minutes, as the completion time f
 
 We have chosen a $2^4$ factorial design. We have not used any blocking in our design, as we do not have any external factors which might affect the factors in the game; the speed of the vehicle is independent of the temperature or noises in the room. The performance of the player might of course be affected to some degree by such nuisance factors. We did, however, take some measures to avoid this, such that the test person was alone in the room when he played and he finished the testing in a relatively quick manner, such that tiredness should not be a factor. 
 
-Furthermore, we have also chosen to not use replicates, as this would lead to at least 32 experiments, since we have 4 factors. Using replicates could be desirable, as lap times will vary between experiments.
+Furthermore, we have also chosen to not use replicates, as this would lead to at least 32 experiments, since we have 4 factors. Using replicates could however be desirable in a more extensive experiment, as lap times will vary between tests.
 
 ## Implementation of our Experiment 
 
@@ -68,7 +64,7 @@ We start by loading the `.csv` file which contains the data into `R`. The factor
 
 Character: 1 is "Baby mario", -1 is "Wario"
 
-Body: 1 is "Buggybud", -1 is "Badwagon"
+Body: 1 is "Biddybuggy", -1 is "Badwagon"
 
 Tire: 1 is "Roller", -1 is "Metal"
 
@@ -81,7 +77,7 @@ colnames(MarioKart.df)[1] = "Character" #changing the first colname to 'Characte
 
 #Adding factors and response to a new dataframe
 Character <- as.factor(ifelse(MarioKart.df$Character == "Baby mario", 1, -1))
-Body <- as.factor(ifelse(MarioKart.df$Body == "Buggybud" , 1, -1))
+Body <- as.factor(ifelse(MarioKart.df$Body == "Biddybuggy" , 1, -1))
 Tire <- as.factor(ifelse(MarioKart.df$Tire == "Roller" , 1, -1))
 Glider <- as.factor(ifelse(MarioKart.df$Glider == "Cloud Glider", 1, -1))
 Time <- MarioKart.df$Average
@@ -97,27 +93,30 @@ lm.summary <- summary(Experiment.lm)
 lm.summary
 ```
 
-With a significance level of $\alpha = 0.05$, we get that the following terms are significant:
+We first note that we have a very low p-value of p=`r pf(lm.summary$fstatistic[1],lm.summary$fstatistic[2],lm.summary$fstatistic[3],lower.tail=FALSE)` from the F-test, which suggests that it is likely that at least one of the covariates is significant.
+
+From the individual T-tests, we see that with a significance level of $\alpha = 0.05$, we get that the following terms are significant:
 
 ```{r}
 alpha = 0.05
-lm.summary$coefficients[, 'Pr(>|t|)'][lm.summary$coefficients[, 'Pr(>|t|)']<=alpha]
+names(lm.summary$coefficients[, 'Pr(>|t|)'][lm.summary$coefficients[, 'Pr(>|t|)']<=alpha]) #all covariates with deemed significant with alpha=0.05
 ```
 
 We see that all the main effects, except for `Glider` are significant, with `Body` having an especially low p-value. We also see that some of the interaction terms are deemed significant, meaning that picking a particular combination of vehicle parts might be important.
 
-Now we move on to an analysis of variance.
+Now we move on to an analysis of variance. 
 
 ```{r}
 #ANOVA
+Experiment.lm$call
 anova <- anova(Experiment.lm)
 anova
 ```
-Again, using a significance level of $\alpha = 0.05$, we obtain that the following terms are significant for our model:
+Here, anova adds each covariate one by one and tests whether it improves the model by an F-test. Again, using a significance level of $\alpha = 0.05$, we obtain that the following terms are significant for our model:
 
 ```{r}
 alpha = 0.05
-rownames(anova)[anova$`Pr(>F)`<=alpha]
+head(rownames(anova)[anova$`Pr(>F)`<=alpha],-1) #all covariates with deemed significant with alpha=0.05
 ```
 Now we see that all main effects are deemed signifanct to the model, with `Body` still having the lowest p-value. 
 
@@ -129,7 +128,7 @@ Estimated_effects <- Experiment.lm$coefficients[-1]*2
 Estimated_effects[order(abs(Estimated_effects), decreasing = T)]
 ```
 
-In absolute value, we see that the effect of `Body` is the highest, with `Character` and `Tire` being a little lower. We also notice that the effect of `Glider` is very small, as we suspected from the p-values discussed earlier. We can also notice the interaction term between `Character` and `Body`, which suggests that we get even better times with this combination.
+In absolute value, we see that the effect of `Body` is the highest, with `Character` and `Tire` being a little lower. We also notice that the effect of `Glider` is very small, as we suspected from the p-values discussed earlier. We can also notice that the interaction term between `Character` and `Body` is high, which suggests that they might not be independent.
 
 Now we will look at the main effects plot, as well as the interaction plot.
 
@@ -137,12 +136,12 @@ Now we will look at the main effects plot, as well as the interaction plot.
 MEPlot(Experiment.lm)
 ```
 
-From the main effects plot, we see that it suggests lower times for `Baby Mario`, `Buggybud`, `Roller` and `Super Glider`. We also see that we have the largest discrepancy in time for `Body`, which also suggests that this is an important feature.
+From the main effects plot, we see that it suggests lower times for `Baby Mario`, `Biddybuggy`, `Roller` and `Super Glider`. We also see that we have the largest discrepancy in time for `Body`, which suggests that this is an especially important feature.
 
 ```{r}
 IAPlot(Experiment.lm)
 ```
-From the interaction plot, we see that the lines are not equal for the interaction between `Character` and `Body`, which suggests that they are not independent. 
+From the interaction plot, we see that the lines are not equal for the interaction between `Character` and `Body`, which suggests that they are not independent, as discussed earlier. The same can be said for the interaction between `Tire` and `Glider`, as well as with `Character` and `Tire`, but to a lesser extent. The rest of the terms seem to be independent of each other.
 
 Finally, we will assess whether our linear model meets the assumptions on normality. We start by examining the residuals vs fitted values-plot, and the QQ-plot.
 
@@ -157,10 +156,11 @@ We also use an Anderson-Darling test to investigate the normality of the residua
 ```{r}
 stdres <- stdres(Experiment.lm) #Standardized residuals
 ad <- ad.test(stdres) #Anderson Darling test
+ad
 ```
 
-From the Anderson-Darling test, we obtain a p-value of p=`r ad$p.value`. Since this is quite high, it suggests that the residuals are normally distributed. This, in combination with the QQ-plot and the residuals vs fitted-plot, suggests that our assumptions are met.
+From the Anderson-Darling test, we obtain a p-value of p=`r ad$p.value`. Since this is quite high, we do not reject the hypotheses that the residuals are not normally distributed. This, in combination with the QQ-plot and the residuals vs fitted-plot, suggests that our assumptions are met.
 
 ## Conclusion 
 
-As shown in the analysis, the choice of components actually affects the race time. We have seen that the body was the most influential, followed by character and tires. The choice of glider was the least influential, but it still had a measurable effect. In our experiment, the best performing combination is Baby Mario, Biddybuggy, Roller and Super Glider. For the most part, these components focus on acceleration rather than speed, and this could be because the map we chose had quite a few turns. This favors rapid acceleration, while a map with less turns would favor cars with higher speed.  
+As shown in the analysis, the choice of components actually affects the race time. We have seen that the body was the most influential, followed by character and tires. The choice of glider was the least influential, but it still had a measurable effect. Following our analysis, the best performing combination would be Baby Mario, Biddybuggy, Roller and Super Glider. For the most part, these components focus on acceleration rather than speed, and this could be because the map we chose had quite a few turns. This favors rapid acceleration, while a map with less turns would favor cars with higher speed.  
